@@ -1,5 +1,15 @@
 ﻿internal static class Day05
 {
+    private const string SEED = "seed";
+    private const string SOIL = "soil";
+    private const string FERTILIZER = "fertilizer";
+    private const string WATER = "water";
+    private const string LIGHT = "light";
+    private const string TEMPERATURE = "temperature";
+    private const string HUMIDITY = "humidity";
+    private const string LOCATION = "location";
+    private const int FIVE_MILLION = 5_000_000;
+
     internal static void Solve()
     {
         var lines = File.ReadLines("Day05/Input.txt");
@@ -36,12 +46,12 @@
                 break;
             }
 
-            if (location % 5_000_000 == 0)
+            if (location % FIVE_MILLION == 0)
             {
                 Console.WriteLine($"Day 5, Part 2: Checking locations {location / 1_000_000}M+ at {DateTime.Now}.");
             }
         }
-        
+
         Console.WriteLine($"Day 5, Part 2: Finished search at {DateTime.Now}.");
         Console.WriteLine($"Day 5, Part 2: {lowestLocationPart2}");
 
@@ -89,26 +99,26 @@
 
         long FindLocation(Dictionary<(string source, string destination), Range[]> maps, long seed)
         {
-            var soil = FindDestinationNumber(maps, "seed", "soil", seed);
-            var fertilizer = FindDestinationNumber(maps, "soil", "fertilizer", soil);
-            var water = FindDestinationNumber(maps, "fertilizer", "water", fertilizer);
-            var light = FindDestinationNumber(maps, "water", "light", water);
-            var temperature = FindDestinationNumber(maps, "light", "temperature", light);
-            var humidity = FindDestinationNumber(maps, "temperature", "humidity", temperature);
-            var location = FindDestinationNumber(maps, "humidity", "location", humidity);
+            var soil = FindDestinationNumber(maps, SEED, SOIL, seed);
+            var fertilizer = FindDestinationNumber(maps, SOIL, FERTILIZER, soil);
+            var water = FindDestinationNumber(maps, FERTILIZER, WATER, fertilizer);
+            var light = FindDestinationNumber(maps, WATER, LIGHT, water);
+            var temperature = FindDestinationNumber(maps, LIGHT, TEMPERATURE, light);
+            var humidity = FindDestinationNumber(maps, TEMPERATURE, HUMIDITY, temperature);
+            var location = FindDestinationNumber(maps, HUMIDITY, LOCATION, humidity);
 
             return location;
         }
 
         long FindSeed(Dictionary<(string source, string destination), Range[]> maps, long location)
         {
-            var humidity = FindSourceNumber(maps, "humidity", "location", location);
-            var temperature = FindSourceNumber(maps, "temperature", "humidity", humidity);
-            var light = FindSourceNumber(maps, "light", "temperature", temperature);
-            var water = FindSourceNumber(maps, "water", "light", light);
-            var fertilizer = FindSourceNumber(maps, "fertilizer", "water", water);
-            var soil = FindSourceNumber(maps, "soil", "fertilizer", fertilizer);
-            var seed = FindSourceNumber(maps, "seed", "soil", soil);
+            var humidity = FindSourceNumber(maps, HUMIDITY, LOCATION, location);
+            var temperature = FindSourceNumber(maps, TEMPERATURE, HUMIDITY, humidity);
+            var light = FindSourceNumber(maps, LIGHT, TEMPERATURE, temperature);
+            var water = FindSourceNumber(maps, WATER, LIGHT, light);
+            var fertilizer = FindSourceNumber(maps, FERTILIZER, WATER, water);
+            var soil = FindSourceNumber(maps, SOIL, FERTILIZER, fertilizer);
+            var seed = FindSourceNumber(maps, SEED, SOIL, soil);
 
             return seed;
         }
