@@ -50,9 +50,9 @@
             return lines.First().Replace("seeds: ", "").Trim().Split(" ").Select(long.Parse).ToArray();
         }
 
-        Dictionary<(string sourceType, string destinationType), List<Range>> ParseMaps(IEnumerable<string> lines)
+        Dictionary<(string source, string destination), Range[]> ParseMaps(IEnumerable<string> lines)
         {
-            var maps = new Dictionary<(string sourceType, string destinationType), List<Range>>();
+            var maps = new Dictionary<(string source, string destination), List<Range>>();
 
             foreach (var line in lines.Skip(1))
             {
@@ -63,7 +63,7 @@
                 else if (line.Contains("map"))
                 {
                     var split = line.Replace("map:", "").Trim().Split("-to-");
-                    maps.Add((sourceType: split[0], destinationType: split[1]), new List<Range>());
+                    maps.Add((source: split[0], destination: split[1]), new List<Range>() { Range.Empty });
                 }
                 else
                 {
@@ -72,61 +72,49 @@
                 }
             }
 
-            return maps;
+            return maps.ToDictionary(x => x.Key, y => y.Value.OrderBy(z => z.IsEmpty).ToArray());
         }
 
-        long FindDestinationNumber(Dictionary<(string source, string destination), List<Range>> maps, string source, string destination, long sourceNumber)
+        long FindDestinationNumber(Dictionary<(string source, string destination), Range[]> maps, string source, string destination, long sourceNumber)
         {
-            var range = maps[(source, destination)]
-                .Where(x => sourceNumber >= x.SourceStart && sourceNumber < x.SourceEnd)
-                .FirstOrDefault();
-
-            return range?.CalculateDestinationNumber(sourceNumber) ?? sourceNumber;
+            var range = maps[(source, destination)].First(x => sourceNumber >= x.SourceStart && sourceNumber < x.SourceEnd);
+            return range.CalculateDestinationNumber(sourceNumber);
         }
 
-        long FindSourceNumber(Dictionary<(string source, string destination), List<Range>> maps, string source, string destination, long destinationNumber)
+        long FindSourceNumber(Dictionary<(string source, string destination), Range[]> maps, string source, string destination, long destinationNumber)
         {
-            var range = maps[(source, destination)]
-                .Where(x => destinationNumber >= x.DestinationStart && destinationNumber < x.DestinationEnd)
-                .FirstOrDefault();
-
-            return range?.CalculateSourceNumber(destinationNumber) ?? destinationNumber;
+            var range = maps[(source, destination)].First(x => destinationNumber >= x.DestinationStart && destinationNumber < x.DestinationEnd);
+            return range.CalculateSourceNumber(destinationNumber);
         }
 
-        long FindLocation(Dictionary<(string sourceType, string destinationType), List<Range>> maps, long seed)
+        long FindLocation(Dictionary<(string source, string destination), Range[]> maps, long seed)
         {
-            var sourceType = "seed";
-            var destinationType = maps.First(x => x.Key.sourceType == sourceType).Key.destinationType;
-            var destinationNumber = FindDestinationNumber(maps, sourceType, destinationType, seed);
+            var soil = FindDestinationNumber(maps, "seed", "soil", seed);
+            var fertilizer = FindDestinationNumber(maps, "soil", "fertilizer", soil);
+            var water = FindDestinationNumber(maps, "fertilizer", "water", fertilizer);
+            var light = FindDestinationNumber(maps, "water", "light", water);
+            var temperature = FindDestinationNumber(maps, "light", "temperature", light);
+            var humidity = FindDestinationNumber(maps, "temperature", "humidity", temperature);
+            var location = FindDestinationNumber(maps, "humidity", "location", humidity);
 
-            while (destinationType != "location")
-            {
-                sourceType = destinationType;
-                destinationType = maps.First(x => x.Key.sourceType == sourceType).Key.destinationType;
-                destinationNumber = FindDestinationNumber(maps, sourceType, destinationType, destinationNumber);
-            }
-
-            return destinationNumber;
+            return location;
         }
 
-        long FindSeed(Dictionary<(string sourceType, string destinationType), List<Range>> maps, long location)
+        long FindSeed(Dictionary<(string source, string destination), Range[]> maps, long location)
         {
-            var destinationType = "location";
-            var sourceType = maps.First(x => x.Key.destinationType == destinationType).Key.sourceType;
-            var sourceNumber = FindSourceNumber(maps, sourceType, destinationType, location);
+            var humidity = FindSourceNumber(maps, "humidity", "location", location);
+            var temperature = FindSourceNumber(maps, "temperature", "humidity", humidity);
+            var light = FindSourceNumber(maps, "light", "temperature", temperature);
+            var water = FindSourceNumber(maps, "water", "light", light);
+            var fertilizer = FindSourceNumber(maps, "fertilizer", "water", water);
+            var soil = FindSourceNumber(maps, "soil", "fertilizer", fertilizer);
+            var seed = FindSourceNumber(maps, "seed", "soil", soil);
 
-            while (sourceType != "seed")
-            {
-                destinationType = sourceType;
-                sourceType = maps.First(x => x.Key.destinationType == destinationType).Key.sourceType;
-                sourceNumber = FindSourceNumber(maps, sourceType, destinationType, sourceNumber);
-            }
-
-            return sourceNumber;
+            return seed;
         }
     }
 
-    class Range
+    struct Range
     {
         public Range(long destinationStart, long sourceStart, long length)
         {
@@ -135,6 +123,7 @@
             Length = length;
             SourceEnd = SourceStart + length;
             DestinationEnd = DestinationStart + length;
+            IsEmpty = length == long.MaxValue;
         }
 
         public long DestinationStart { get; }
@@ -142,6 +131,9 @@
         public long Length { get; }
         public long SourceEnd { get; }
         public long DestinationEnd { get; }
+        public bool IsEmpty { get; }
+
+        public static Range Empty => new(0, 0, long.MaxValue);
 
         public long CalculateSourceNumber(long destinationNumber) => SourceStart + (destinationNumber - DestinationStart);
         public long CalculateDestinationNumber(long sourceNumber) => DestinationStart + (sourceNumber - SourceStart);
