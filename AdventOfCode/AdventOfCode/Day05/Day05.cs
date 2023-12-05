@@ -15,8 +15,6 @@
 
         Console.WriteLine($"Day 5, Part 1: {lowestLocationPart1}");
 
-        var lowestLocationPart2 = long.MaxValue;
-
         var seedRanges = new List<(long start, long end)>();
 
         for (int i = 0; i < seeds.Count(); i = i + 2)
@@ -24,28 +22,28 @@
             seedRanges.Add((start: seeds[i], end: seeds[i] + seeds[i + 1]));
         }
 
-        Console.WriteLine($"Day 5, Part 2: Starting search {DateTime.Now}...");
+        Console.WriteLine($"Day 5, Part 2: Starting search at {DateTime.Now}...");
 
-        Parallel.For(0, 100_000_000, (location, state) =>
+        var lowestLocationPart2 = long.MaxValue;
+
+        for (int location = 0; location < int.MaxValue; location++)
         {
-            if (location >= lowestLocationPart2)
-            {
-                state.Break();
-            }
-
             var seed = FindSeed(maps, location);
 
-            if (seedRanges.Any(x => seed >= x.start && seed < x.end))
+            if (seedRanges.Any(x => x.start <= seed && x.end > seed))
             {
-                lowestLocationPart2 = Math.Min(lowestLocationPart2, location);
-                Console.WriteLine($"Day 5, Part 2: Found location {lowestLocationPart2} for seed {seed} at {DateTime.Now}.");
-                state.Break();
+                lowestLocationPart2 = location;
+                break;
             }
-        });
 
-        Console.WriteLine($"Day 5, Part 2: Finished search {DateTime.Now}.");
+            if (location % 5_000_000 == 0)
+            {
+                Console.WriteLine($"Day 5, Part 2: Checking locations {location / 1_000_000}M+ at {DateTime.Now}.");
+            }
+        }
+        
+        Console.WriteLine($"Day 5, Part 2: Finished search at {DateTime.Now}.");
         Console.WriteLine($"Day 5, Part 2: {lowestLocationPart2}");
-
 
         long[] ParseSeeds(IEnumerable<string> lines)
         {
