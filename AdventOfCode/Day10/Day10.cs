@@ -16,33 +16,17 @@
         var startingPosition = tiles.Single(x => x.Value == 'S');
         var possibleConnections = GetPossibleConnections(lines, startingPosition).ToArray();
         var validConnection = possibleConnections.First(x => lines[x.line][x.column] == x.value);
+        var currentPosition = new Position(startingPosition, validConnection.line, validConnection.column, validConnection.value);
 
-        var queue = new Queue<Position>();
-        var currentPosition = default(Position);
-
-        queue.Enqueue(new Position(startingPosition, validConnection.line, validConnection.column, validConnection.value));
-
-        while (queue.Any())
+        while (currentPosition.Value != 'S')
         {
-            currentPosition = queue.Dequeue();
+            var previousPosition = currentPosition.Previous!;
 
-            if (currentPosition.Value == 'S')
-            {
-                break;
-            }
-
-            foreach (var connection in GetPossibleConnections(lines, currentPosition))
-            {
-                if (connection.line == currentPosition.Previous!.Line && connection.column == currentPosition.Previous!.Column)
-                {
-                    continue;
-                }
-
-                if (lines[connection.line][connection.column] == connection.value)
-                {
-                    queue.Enqueue(new Position(currentPosition, connection.line, connection.column, connection.value));
-                }
-            }
+            currentPosition = GetPossibleConnections(lines, currentPosition)
+                .Where(x => x.line != previousPosition.Line || x.column != previousPosition.Column)
+                .Where(x => lines[x.line][x.column] == x.value)
+                .Select(x => new Position(currentPosition, x.line, x.column, x.value))
+                .Single();
         }
 
         var loopTiles = 0;
