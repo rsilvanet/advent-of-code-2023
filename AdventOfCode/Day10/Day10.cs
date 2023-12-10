@@ -3,19 +3,20 @@
     internal static void Solve()
     {
         var lines = File.ReadLines("Day10/Input.txt").ToArray();
-        var tiles = new List<Position>();
+        var tiles = new List<Tile>();
 
         for (int line = 0; line < lines.Count(); line++)
         {
             for (int column = 0; column < lines[line].Count(); column++)
             {
-                tiles.Add(new Position(line, column, lines[line][column]));
+                tiles.Add(new Tile(line, column, lines[line][column]));
             }
         }
 
-        var startingPosition = tiles.Single(x => x.Value == 'S');
-        var possibleConnections = GetPossibleConnections(lines, startingPosition).ToArray();
+        var startingTile = tiles.Single(x => x.Value == 'S');
+        var possibleConnections = GetPossibleConnections(lines, startingTile).ToArray();
         var validConnection = possibleConnections.First(x => lines[x.line][x.column] == x.value);
+        var startingPosition = new Position(startingTile.Line, startingTile.Column, startingTile.Value);
         var currentPosition = new Position(startingPosition, validConnection.line, validConnection.column, validConnection.value);
 
         while (currentPosition.Value != 'S')
@@ -31,8 +32,7 @@
 
         var loopTiles = 0;
         var boundaries = currentPosition!.ReadLoop().ToArray();
-
-        tiles.Single(x => x.Value == 'S').Value = 'J';
+        var validVerticalJoints = new HashSet<string>() { "L7", "FJ", "LS", "S7", "FS", "SJ" };
 
         foreach (var tile in tiles)
         {
@@ -45,7 +45,7 @@
             var verticalBoundaryTilesToTheLeft = bondaryTilesToTheLeft.Count(x => x.Value == '|');
 
             var jointBoundaryTilesToTheLeft = bondaryTilesToTheLeft
-                .Where(x => "L7FJ".Contains(x.Value))
+                .Where(x => "L7FJS".Contains(x.Value))
                 .OrderBy(x => x.Column)
                 .Select(x => x.Value)
                 .ToArray();
@@ -54,7 +54,7 @@
             {
                 var verticalJoint = $"{jointBoundaryTilesToTheLeft[i - 1]}{jointBoundaryTilesToTheLeft[i]}";
 
-                if (verticalJoint == "L7" || verticalJoint == "FJ")
+                if (validVerticalJoints.Contains(verticalJoint))
                 {
                     verticalBoundaryTilesToTheLeft++;
                 }
@@ -69,140 +69,92 @@
         Console.WriteLine($"Day 10, Part 1: {currentPosition!.Steps / 2}");
         Console.WriteLine($"Day 10, Part 2: {loopTiles}");
 
-        IEnumerable<(int line, int column, char value)> GetPossibleConnections(string[] lines, Position position)
+        IEnumerable<(int line, int column, char value)> GetPossibleConnections(string[] lines, Tile tile)
         {
-            var value = lines[position.Line][position.Column];
-
-            if (value == 'S')
+            var left = new[]
             {
-                yield return (position.Line, position.Column + 1, '-');
-                yield return (position.Line, position.Column + 1, 'J');
-                yield return (position.Line, position.Column + 1, '7');
+                (tile.Line, tile.Column - 1, '-'),
+                (tile.Line, tile.Column - 1, 'F'),
+                (tile.Line, tile.Column - 1, 'L'),
+                (tile.Line, tile.Column - 1, 'S')
+            };
 
-                yield return (position.Line, position.Column - 1, '-');
-                yield return (position.Line, position.Column - 1, 'F');
-                yield return (position.Line, position.Column - 1, 'L');
-
-                yield return (position.Line + 1, position.Column, '|');
-                yield return (position.Line + 1, position.Column, 'L');
-                yield return (position.Line + 1, position.Column, 'J');
-
-                yield return (position.Line - 1, position.Column, '|');
-                yield return (position.Line - 1, position.Column, 'F');
-                yield return (position.Line - 1, position.Column, '7');
-            }
-            else if (value == '-')
+            var right = new[]
             {
-                yield return (position.Line, position.Column + 1, '-');
-                yield return (position.Line, position.Column + 1, 'J');
-                yield return (position.Line, position.Column + 1, '7');
-                yield return (position.Line, position.Column + 1, 'S');
+                (tile.Line, tile.Column + 1, '-'),
+                (tile.Line, tile.Column + 1, 'J'),
+                (tile.Line, tile.Column + 1, '7'),
+                (tile.Line, tile.Column + 1, 'S')
+            };
 
-                yield return (position.Line, position.Column - 1, '-');
-                yield return (position.Line, position.Column - 1, 'F');
-                yield return (position.Line, position.Column - 1, 'L');
-                yield return (position.Line, position.Column - 1, 'S');
-            }
-            else if (value == '|')
+            var bottom = new[]
             {
-                yield return (position.Line + 1, position.Column, '|');
-                yield return (position.Line + 1, position.Column, 'L');
-                yield return (position.Line + 1, position.Column, 'J');
-                yield return (position.Line + 1, position.Column, 'S');
+                (tile.Line + 1, tile.Column, '|'),
+                (tile.Line + 1, tile.Column, 'L'),
+                (tile.Line + 1, tile.Column, 'J'),
+                (tile.Line + 1, tile.Column, 'S')
+            };
 
-                yield return (position.Line - 1, position.Column, '|');
-                yield return (position.Line - 1, position.Column, 'F');
-                yield return (position.Line - 1, position.Column, '7');
-                yield return (position.Line - 1, position.Column, 'S');
-            }
-            else if (value == 'F')
+            var up = new[]
             {
-                yield return (position.Line, position.Column + 1, '-');
-                yield return (position.Line, position.Column + 1, 'J');
-                yield return (position.Line, position.Column + 1, '7');
-                yield return (position.Line, position.Column + 1, 'S');
+                (tile.Line - 1, tile.Column, '|'),
+                (tile.Line - 1, tile.Column, 'F'),
+                (tile.Line - 1, tile.Column, '7'),
+                (tile.Line - 1, tile.Column, 'S')
+            };
 
-                yield return (position.Line + 1, position.Column, '|');
-                yield return (position.Line + 1, position.Column, 'L');
-                yield return (position.Line + 1, position.Column, 'J');
-                yield return (position.Line + 1, position.Column, 'S');
-            }
-            else if (value == '7')
+            return lines[tile.Line][tile.Column] switch
             {
-                yield return (position.Line, position.Column - 1, '-');
-                yield return (position.Line, position.Column - 1, 'F');
-                yield return (position.Line, position.Column - 1, 'L');
-                yield return (position.Line, position.Column - 1, 'S');
-
-                yield return (position.Line + 1, position.Column, '|');
-                yield return (position.Line + 1, position.Column, 'L');
-                yield return (position.Line + 1, position.Column, 'J');
-                yield return (position.Line + 1, position.Column, 'S');
-            }
-            else if (value == 'L')
-            {
-                yield return (position.Line, position.Column + 1, '-');
-                yield return (position.Line, position.Column + 1, 'J');
-                yield return (position.Line, position.Column + 1, '7');
-                yield return (position.Line, position.Column + 1, 'S');
-
-                yield return (position.Line - 1, position.Column, '|');
-                yield return (position.Line - 1, position.Column, 'F');
-                yield return (position.Line - 1, position.Column, '7');
-                yield return (position.Line - 1, position.Column, 'S');
-            }
-            else if (value == 'J')
-            {
-                yield return (position.Line, position.Column - 1, '-');
-                yield return (position.Line, position.Column - 1, 'F');
-                yield return (position.Line, position.Column - 1, 'L');
-                yield return (position.Line, position.Column - 1, 'S');
-
-                yield return (position.Line - 1, position.Column, '|');
-                yield return (position.Line - 1, position.Column, 'F');
-                yield return (position.Line - 1, position.Column, '7');
-                yield return (position.Line - 1, position.Column, 'S');
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
+                'S' => right.Concat(left).Concat(bottom).Concat(up),
+                '-' => right.Concat(left),
+                '|' => bottom.Concat(up),
+                'F' => right.Concat(bottom),
+                '7' => left.Concat(bottom),
+                'L' => right.Concat(up),
+                'J' => left.Concat(up),
+                _ => throw new NotImplementedException()
+            };
         }
     }
 
-    class Position
+    class Tile
     {
-        public Position(int line, int column, char value)
+        public Tile(int line, int column, char value)
         {
             Line = line;
             Column = column;
             Value = value;
-            Steps = 0;
         }
 
-        public Position(Position previous, int line, int column, char value)
-        {
-            Previous = previous;
-            Line = line;
-            Column = column;
-            Value = value;
-            Steps = previous.Steps + 1;
-        }
-
-        public Position? Previous { get; set; }
         public int Line { get; }
         public int Column { get; }
         public char Value { get; set; }
+    }
+
+    class Position : Tile
+    {
+        public Position(int line, int column, char value) : base(line, column, value)
+        {
+            Steps = 0;
+        }
+
+        public Position(Position previous, int line, int column, char value) : base(line, column, value)
+        {
+            Previous = previous;
+            Steps = previous.Steps + 1;
+        }
+
+        public Position? Previous { get; }
         public int Steps { get; }
 
         public IEnumerable<Position> ReadLoop()
         {
-            var curent = this;
+            var current = this;
 
-            while(curent.Previous != null)
+            while (current.Previous != null)
             {
-                yield return curent.Previous;
-                curent = curent.Previous;
+                current = current.Previous;
+                yield return current;
             }
         }
     }
