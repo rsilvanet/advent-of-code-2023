@@ -17,13 +17,13 @@
 
         RollRocksNorth(boardPart1);
 
-        var boardHashes = new List<string>();
+        var boardHashes = new List<int>();
 
         for (int index = 0; true; index++)
         {
             boardPart2 = Cycle(boardPart2);
 
-            var hash = GetHashForRocks(boardPart2);
+            var hash = GetBoardHashCode(boardPart2);
             var indexOfHash = boardHashes.IndexOf(hash);
 
             if (indexOfHash > -1)
@@ -46,8 +46,8 @@
 
         void RollRocksNorth(char[,] board)
         {
-            int rows = board.GetLength(0);
-            int columns = board.GetLength(1);
+            var rows = board.GetLength(0);
+            var columns = board.GetLength(1);
 
             for (int row = 1; row < rows; row++)
             {
@@ -84,8 +84,8 @@
 
         char[,] RotateClockwise(char[,] board)
         {
-            int rows = board.GetLength(0);
-            int columns = board.GetLength(1);
+            var rows = board.GetLength(0);
+            var columns = board.GetLength(1);
             var rotatedMatrix = new char[columns, rows];
 
             for (int row = 0; row < rows; row++)
@@ -117,33 +117,33 @@
             return sum;
         }
 
-        char[,] Cycle(char[,] boardPart2)
+        char[,] Cycle(char[,] board)
         {
-            RollRocksNorth(boardPart2); // North
-            boardPart2 = RotateClockwise(boardPart2); // West
-            RollRocksNorth(boardPart2);
-            boardPart2 = RotateClockwise(boardPart2); // South
-            RollRocksNorth(boardPart2);
-            boardPart2 = RotateClockwise(boardPart2); // East
-            RollRocksNorth(boardPart2);
-            boardPart2 = RotateClockwise(boardPart2); // North
+            RollRocksNorth(board); // North
+            board = RotateClockwise(board); // West
+            RollRocksNorth(board);
+            board = RotateClockwise(board); // South
+            RollRocksNorth(board);
+            board = RotateClockwise(board); // East
+            RollRocksNorth(board);
+            board = RotateClockwise(board); // North
 
-            return boardPart2;
+            return board;
         }
 
-        string GetHashForRocks(char[,] board)
+        int GetBoardHashCode(char[,] board)
         {
-            int rows = board.GetLength(0);
-            int cols = board.GetLength(1);
-            var hash = string.Empty;
+            var rows = board.GetLength(0);
+            var columns = board.GetLength(1);
+            var hash = 0;
 
             for (int row = 0; row < rows; row++)
             {
-                for (int column = 0; column < cols; column++)
+                for (int column = 0; column < columns; column++)
                 {
                     if (board[row, column] == 'O')
                     {
-                        hash += $"{row},{column};";
+                        hash += row.GetHashCode() * 100 + column.GetHashCode();
                     }
                 }
             }
