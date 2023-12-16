@@ -1,6 +1,5 @@
 ﻿using System.Data;
 using System.Diagnostics;
-using System.Linq;
 using System.Text.RegularExpressions;
 
 internal static class Day12
@@ -35,99 +34,127 @@ internal static class Day12
         }
 
         Console.WriteLine($"Day 12, Part 2: {CountPossibleArrangements(springRowsPart2, damagedMapsPart2)}");
-    }
 
-    private static long CountPossibleArrangements(Dictionary<int, string> springRows, Dictionary<int, int[]> damagedMap)
-    {
-        var sum = 0L;
-        var rowCount = 0;
 
-        var stopWatch = Stopwatch.StartNew();
-
-        Parallel.For(0, springRows.Count, new ParallelOptions() { MaxDegreeOfParallelism = -1 }, (i) =>
+        long CountPossibleArrangements(Dictionary<int, string> springRows, Dictionary<int, int[]> damagedMap)
         {
-            var rowDamagedMap = damagedMap[i];
-            var memo = new Dictionary<string, long>();
+            var sum = 0L;
+            var stopWatch = Stopwatch.StartNew();
 
-            Interlocked.Add(ref sum, CountPossibleArrangementsRecursive(springRows[i], rowDamagedMap, 0, memo));
-            Interlocked.Increment(ref rowCount);
-        });
+            Parallel.For(0, springRows.Count, new ParallelOptions() { MaxDegreeOfParallelism = -1 }, (i) =>
+            {
+                var rowDamagedMap = damagedMap[i];
+                var memo = new Dictionary<string, long>();
 
-        Console.WriteLine(stopWatch.ElapsedMilliseconds + "ms");
+                Interlocked.Add(ref sum, CountPossibleArrangementsRecursive(springRows[i], rowDamagedMap, 0, memo));
+            });
 
-        return sum;
-    }
-
-    private static long CountPossibleArrangementsRecursive(string springs, int[] damagedMap, long sum, Dictionary<string, long> memo)
-    {
-        var cacheKey = $"{new string(springs)}|{string.Join(',', damagedMap)}";
-
-        if (memo.TryGetValue(cacheKey, out var value))
-        {
-            return sum + value;
+            return sum;
         }
 
-        var questionMarkIndex = springs.IndexOf('?');
-
-        if (questionMarkIndex > -1)
+        long CountPossibleArrangementsRecursive(string springs, int[] damagedMap, long sum, Dictionary<string, long> memo)
         {
-            if (!IsMatchUntilQuestionMark(springs, damagedMap, questionMarkIndex, out int newDamagedIndex, out int newLastSafeIndex))
+            var cacheKey = $"{new string(springs)}|{string.Join(',', damagedMap)}";
+
+            if (memo.TryGetValue(cacheKey, out var value))
             {
-                return sum;
+                return sum + value;
             }
 
-            if (!HasEnoughCharacters(springs, damagedMap))
+            var questionMarkIndex = springs.IndexOf('?');
+
+            if (questionMarkIndex > -1)
             {
-                return sum;
+                if (!IsMatchUntilQuestionMark(springs, damagedMap, questionMarkIndex, out int newDamagedIndex, out int newLastSafeIndex))
+                {
+                    memo.Add(cacheKey, 0);
+                    return sum;
+                }
+
+                if (!CanFormEnoughGroups(springs, damagedMap))
+                {
+                    memo.Add(cacheKey, 0);
+                    return sum;
+                }
+
+                springs = springs.Substring(newLastSafeIndex);
+                damagedMap = damagedMap.Skip(newDamagedIndex).ToArray();
+                questionMarkIndex = springs.IndexOf('?');
+
+                var sumBefore = sum;
+                var newSprings = springs.Remove(questionMarkIndex, 1);
+
+                sum = CountPossibleArrangementsRecursive(newSprings.Insert(questionMarkIndex, "."), damagedMap, sum, memo);
+                sum = CountPossibleArrangementsRecursive(newSprings.Insert(questionMarkIndex, "#"), damagedMap, sum, memo);
+
+                memo.Add(cacheKey, sum - sumBefore);
+            }
+            else if (IsPossible(springs, damagedMap))
+            {
+                memo.Add(cacheKey, 1);
+                return sum + 1;
             }
 
-            if (!CanFormEnoughGroups(springs, damagedMap))
-            {
-                return sum;
-            }
-
-            springs = springs.Substring(newLastSafeIndex);
-            damagedMap = damagedMap.Skip(newDamagedIndex).ToArray();
-            questionMarkIndex = springs.IndexOf('?');
-
-            var sumBefore = sum;
-            var newSprings = springs.Remove(questionMarkIndex, 1);
-
-            sum = CountPossibleArrangementsRecursive(newSprings.Insert(questionMarkIndex, "."), damagedMap, sum, memo);
-            sum = CountPossibleArrangementsRecursive(newSprings.Insert(questionMarkIndex, "#"), damagedMap, sum, memo);
-            
-            memo.Add(cacheKey, sum - sumBefore);
+            return sum;
         }
-        else if (IsPossible(springs, damagedMap))
+
+        bool IsMatchUntilQuestionMark(string springs, int[] damagedMap, int questionMarkIndex, out int newDamagedIndex, out int newLastSafeIndex)
         {
-            return sum + 1;
+            newDamagedIndex = 0;
+            newLastSafeIndex = 0;
+
+            if (questionMarkIndex >= 0)
+            {
+                int length = 0;
+
+                for (int i = 0; i < questionMarkIndex; i++)
+                {
+                    if (springs[i] == '.')
+                    {
+                        if (length > 0)
+                        {
+                            if (newDamagedIndex >= damagedMap.Length || length != damagedMap[newDamagedIndex])
+                            {
+                                return false;
+                            }
+
+                            newLastSafeIndex = i;
+                            newDamagedIndex++;
+                            length = 0;
+                        }
+                    }
+                    else
+                    {
+                        length++;
+                    }
+                }
+
+                if (newDamagedIndex > damagedMap.Length)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
-        return sum;
-    }
-
-    private static bool IsMatchUntilQuestionMark(string springs, int[] damagedMap, int questionMarkIndex, out int newDamagedIndex, out int newLastSafeIndex)
-    {
-        newDamagedIndex = 0;
-        newLastSafeIndex = 0;
-
-        if (questionMarkIndex >= 0)
+        bool IsPossible(string springs, int[] damagedMap)
         {
-            int length = 0;
+            var length = 0;
+            var damagedMapIndex = 0;
 
-            for (int i = 0; i < questionMarkIndex; i++)
+            foreach (char spring in springs)
             {
-                if (springs[i] == '.')
+                if (spring == '.')
                 {
                     if (length > 0)
                     {
-                        if (newDamagedIndex >= damagedMap.Length || length != damagedMap[newDamagedIndex])
+                        if (damagedMapIndex >= damagedMap.Length || damagedMap[damagedMapIndex] != length)
                         {
                             return false;
                         }
 
-                        newLastSafeIndex = i;
-                        newDamagedIndex++;
+                        damagedMapIndex++;
                         length = 0;
                     }
                 }
@@ -137,104 +164,54 @@ internal static class Day12
                 }
             }
 
-            if (newDamagedIndex > damagedMap.Length)
+            if (length > 0)
             {
-                return false;
-            }
-
-        }
-
-        return true;
-    }
-
-    private static bool IsPossible(string springs, int[] damagedMap)
-    {
-        var length = 0;
-        var damagedMapIndex = 0;
-
-        foreach (char spring in springs)
-        {
-            if (spring == '.')
-            {
-                if (length > 0)
+                if (damagedMapIndex >= damagedMap.Length || damagedMap[damagedMapIndex] != length)
                 {
-                    if (damagedMapIndex >= damagedMap.Length || damagedMap[damagedMapIndex] != length)
-                    {
-                        return false;
-                    }
-
-                    damagedMapIndex++;
-                    length = 0;
-                }
-            }
-            else
-            {
-                length++;
-            }
-        }
-
-        if (length > 0)
-        {
-            if (damagedMapIndex >= damagedMap.Length || damagedMap[damagedMapIndex] != length)
-            {
-                return false;
-            }
-
-            damagedMapIndex++;
-        }
-
-        return damagedMapIndex == damagedMap.Length;
-    }
-
-    private static bool HasEnoughCharacters(string springs, int[] damagedMap)
-    {
-        var counter = 0;
-
-        foreach (var spring in springs)
-        {
-            if (spring == '?' || spring == '#')
-            {
-                counter++;
-            }
-        }
-
-        return counter >= damagedMap.Sum();
-    }
-
-    private static bool CanFormEnoughGroups(string springs, int[] damagedMap)
-    {
-        if (damagedMap.Length == 0)
-        {
-            return true;
-        }
-
-        var currentDamageIndex = 0;
-        var currentSectionCounter = 0;
-
-        for (int i = 0; i < springs.Length; i++)
-        {
-            if (springs[i] == '?' || springs[i] == '#')
-            {
-                currentSectionCounter++;
-            }
-
-            if (springs[i] == '.' || i == springs.Length - 1)
-            {
-                while (currentSectionCounter >= damagedMap[currentDamageIndex])
-                {
-                    currentSectionCounter -= damagedMap[currentDamageIndex] + 1;
-                    currentDamageIndex++;
-
-                    if (currentDamageIndex >= damagedMap.Length)
-                    {
-                        return true;
-                    }
+                    return false;
                 }
 
-                currentSectionCounter = 0;
+                damagedMapIndex++;
             }
+
+            return damagedMapIndex == damagedMap.Length;
         }
 
-        return false;
+        bool CanFormEnoughGroups(string springs, int[] damagedMap)
+        {
+            if (damagedMap.Length == 0)
+            {
+                return true;
+            }
+
+            var currentDamageIndex = 0;
+            var currentSectionCounter = 0;
+
+            for (int i = 0; i < springs.Length; i++)
+            {
+                if (springs[i] == '?' || springs[i] == '#')
+                {
+                    currentSectionCounter++;
+                }
+
+                if (springs[i] == '.' || i == springs.Length - 1)
+                {
+                    while (currentSectionCounter >= damagedMap[currentDamageIndex])
+                    {
+                        currentSectionCounter -= damagedMap[currentDamageIndex] + 1;
+                        currentDamageIndex++;
+
+                        if (currentDamageIndex >= damagedMap.Length)
+                        {
+                            return true;
+                        }
+                    }
+
+                    currentSectionCounter = 0;
+                }
+            }
+
+            return false;
+        }
     }
 }
