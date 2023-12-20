@@ -15,8 +15,8 @@ internal static class Day20
         var lowPulseCount = 0L;
         var highPulseCount = 0L;
         var pulses = new Queue<(string source, string destination, PulseType type)>();
-        var rxInputs = modules.Where(x => x.Value.Directions.Contains("rx")).SelectMany(x => x.Value.RecentByInput.Keys);
-        var rxInputCycles = rxInputs.ToDictionary(x => x, x => 0L);
+        var rxInputs = modules.Where(x => x.Value.Directions.Contains("rx")).Select(x => x.Value).ToArray();
+        var rxInputCycles = rxInputs.SelectMany(x => x.RecentByInput.Keys).ToDictionary(x => x, x => 0L);
         var counter = 1;
 
         while (rxInputCycles.Any(x => x.Value == 0))
@@ -39,9 +39,9 @@ internal static class Day20
                     }
                 }
 
-                if (rxInputCycles.TryGetValue(pulse.destination, out long cycle) && cycle == 0 && pulse.type == PulseType.Low)
+                if (rxInputs.Any(x => x.Name == pulse.destination) && pulse.type == PulseType.High)
                 {
-                    rxInputCycles[pulse.destination] = counter;
+                    rxInputCycles[pulse.source] = counter;
                 }
 
                 if (!modules.TryGetValue(pulse.destination, out var module))

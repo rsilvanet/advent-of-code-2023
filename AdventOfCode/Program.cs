@@ -17,3 +17,4 @@ Day16.Solve();
 Day17.Solve();
 Day18.Solve();
 Day19.Solve();
+Day20.Solve();
