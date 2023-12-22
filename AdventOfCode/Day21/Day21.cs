@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-internal static class Day21
+﻿internal static class Day21
 {
     internal static void Solve()
     {
@@ -22,12 +20,12 @@ internal static class Day21
             }
         }
 
-        var stopwatch = Stopwatch.StartNew();
         var memo = new Dictionary<string, int>();
         var countByStep = Enumerable.Range(0, 1000).ToDictionary(x => x, x => 0);
 
-        Console.WriteLine($"Day 21, Part 1: {Walk(board, start, 0, 0, 500, memo, countByStep)} in {stopwatch.ElapsedMilliseconds}ms");
-        
+        Console.WriteLine($"Day 21, Part 1: {Walk(board, start, 0, 0, 64, memo, countByStep)}");
+        Console.WriteLine($"Day 21, Part 2: {CalculateQuadratic(26501365)}");
+
         int Walk(char[,] board, (int row, int column, int realRow, int realColumn) current, int steps, int count, int goal, Dictionary<string, int> memo, Dictionary<int, int> countByStep)
         {
             var memoKey = $"{current.realRow},{current.realColumn},{steps}";
@@ -101,6 +99,17 @@ internal static class Day21
             {
                 yield return (row, columnMinus, realRow, realColumn - 1);
             }
+        }
+    
+        long CalculateQuadratic(long input)
+        {
+            double a = 15181.0 / 17161.0;
+            double b = 30901.0 / 17161.0;
+            double c = -95601.0 / 17161.0;
+
+            // Quadratic coefficients calculated based on steps 65, 196, 327 (full cycles of the input)
+
+            return (long)Math.Round(a * Math.Pow(input, 2) + b * input + c);
         }
     }
 }
